@@ -15,6 +15,7 @@
 void conf_interrupciones(void);
 void conf_motor_LED(void);
 void conf_PWM (void);
+void ADC_init(void);
 void Velocidad_girar_derecha(void);
 void Velocidad_girar_izquierda(void);
 void Velocidad_2();
@@ -54,6 +55,15 @@ void encendido(void) {
 	Velocidad_girar_derecha();
 	_delay_ms(1000);
 	
+	// VERIFICAMOS LA LUZ RECIBIDA PARA PRENDER EL LED BLANCO
+	if (adc_value > 400) {
+		PORTC |= (1 << DDC5);
+	}
+	else {
+		ORTC &= ~(1 << DDC5);
+	}
+		_delay_ms(100);
+	
 	if ((PIND & (1 << PIND3)) == 0) {
 		// Pulsador apagado
 		EstadoActual = APAGADO;
@@ -68,6 +78,9 @@ int main(void) {
 	conf_motor_LED();
 	conf_interrupciones();
 	conf_PWM();
+	ADC_init();
+
+	uint16_t adc_value;
 	
 	OCR1A = OCR1B = 0;
 	
@@ -80,6 +93,7 @@ int main(void) {
 	/* Replace with your application code */
 	while (1) {
 		vector_estados[EstadoActual]();
+		
 	}
 	
 }
@@ -89,6 +103,7 @@ void conf_motor_LED(void){
 	// CONFIGURAMOS EL PUERTO D PARA LOS LEDS (PIN 4 Y 7)
 	DDRD |= (1 << DDD4); // ROJO
 	DDRD |= (1 << DDD7); // VERDE
+	DDRD |= (1 << DDD1); // BLANCA
 	
 	// CONFIGURACION DEL PUERTO B PARA LOS MOTORES (PINES 1, 2, 3 Y 4)
 	// MOTOR A
@@ -106,6 +121,12 @@ void conf_interrupciones(void){
 	
 	EICRA = (1 << ISC00);
 	EIMSK = (1 << INT0);
+}
+void ADC_init() {
+	// Configurar referencia de voltaje a AVCC con capacitor de desacoplo
+	ADMUX |= (1 << REFS0);
+	// Habilitar el ADC y configurar el prescaler a 128 para un rango de 0-5V
+	ADCSRA |= (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
 }
 
 void conf_PWM (void){
@@ -243,5 +264,15 @@ ISR(INT0_vect){
 	_delay_ms(2000);
 	Velocidad_girar_izquierda();
 	_delay_ms(500);
+}
+uint16_t ADC_read(uint8_t channel) {
+	// Seleccionar el canal de entrada
+	ADMUX = (ADMUX & 0xF0) | (channel & 0x0F);
 	
+	// Iniciar la conversion
+	ADCSRA |= (1 << ADSC);
+	
+	// Esperar a que la conversion se complete
+	while (ADCSRA & (1 << ADSC));
+	return ADC;
 }
