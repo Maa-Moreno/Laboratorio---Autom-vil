@@ -11,6 +11,7 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+// Declaracion de las funciones
 void conf_interrupciones(void);
 void conf_motor_LED(void);
 void conf_PWM (void);
@@ -21,22 +22,25 @@ void Velocidad_3(void);
 void Velocidad_4(void);
 void Reversa(void);
 
+// Frecuencia para el PWM
 #define PWM_Frecuencia 1000
 
+// Declaramos los estados
 enum ESTADOS {APAGADO, ENCENDIDO, CANT_ESTADOS};
-
 int EstadoActual;
 
+// Estado: APAGADO
 void apagado (void) {
-	
-	if ((PIND & (1 << PIND4)) != 0) {
+	if ((PIND & (1 << PIND3)) != 0) {
 		// Pulsador encedido
 		EstadoActual = ENCENDIDO;
 	}
 }
 
+// ESTADO: ENCENDIDO
 void encendido(void) {
-	
+
+	// INICIO DE LA SECUENCIA
 	Velocidad_2();
 	_delay_ms(3000);
 	Velocidad_girar_derecha();
@@ -50,15 +54,16 @@ void encendido(void) {
 	Velocidad_girar_derecha();
 	_delay_ms(1000);
 	
-	if ((PIND & (1 << PIND4)) == 0) {
+	if ((PIND & (1 << PIND3)) == 0) {
 		// Pulsador apagado
 		EstadoActual = APAGADO;
 	}
 }
 
+/*------------------------------------------------------------------------------------------------------------------------------------------- */
 int main(void) {
-	
-	DDRD |= (1 << DDD4);
+	// PUERTO DE ENTRADA PARA EL PULSADOR 
+	DDRD &= ~(1 << DDD3);
 	
 	conf_motor_LED();
 	conf_interrupciones();
@@ -78,25 +83,26 @@ int main(void) {
 	}
 	
 }
+/*------------------------------------------------------------------------------------------------------------------------------------------- */
 
 void conf_motor_LED(void){
-	// CONFIGURAMOS EL PUERTO C PARA LOS LEDS
-	DDRC |= (1 << DDC5); // ROJO
-	DDRC |= (1 << DDC4); // VERDE
+	// CONFIGURAMOS EL PUERTO D PARA LOS LEDS (PIN 4 Y 7)
+	DDRD |= (1 << DDD4); // ROJO
+	DDRD |= (1 << DDD7); // VERDE
 	
-	// CONFIGURACION DEL PUERTO C PARA LOS MOTORES
+	// CONFIGURACION DEL PUERTO B PARA LOS MOTORES (PINES 1, 2, 3 Y 4)
 	// MOTOR A
-	DDRC |= (1 << DDC0);
-	DDRC |= (1 << DDC1);
+	DDRB |= (1 << DDB1);
+	DDRB |= (1 << DDB2);
 	// MOTOR B
-	DDRC |= (1 << DDC2);
-	DDRC |= (1 << DDC3);
+	DDRB |= (1 << DDB3);
+	DDRB |= (1 << DDB4);
 	
 }
 
 void conf_interrupciones(void){
-	// PIND 7 COMO ENTRADA PARA EL BOTON DE LOS CHOQUES
-	DDRD |= (1 << DDD2);
+	// PIND 2 COMO ENTRADA PARA EL BOTON DE LOS CHOQUES
+	DDRD &= ~(1 << DDD2);
 	
 	EICRA = (1 << ISC00);
 	EIMSK = (1 << INT0);
@@ -105,8 +111,8 @@ void conf_interrupciones(void){
 void conf_PWM (void){
 	
 	// CONFIGURAMOS EL PUERTO B (PIN 1 Y 2) COMO SALIDA PARA EL PWM
-	DDRB |= (1 << DDB1);
-	DDRB |= (1 << DDB2);
+	DDRD |= (1 << DDD5);
+	DDRD |= (1 << DDD6);
 	
 	// Top a 124
 	ICR1 = F_CPU / (8 * PWM_Frecuencia) - 1;
@@ -130,15 +136,15 @@ void Velocidad_girar_derecha(void){
 	OCR1B = 31;
 	
 	// ACTIVAMOS LA LED DE COLOR VERDE
-	PORTC |= (1 << PINC4);
+	PORTD |= (1 << PIND7);
 	
 	// ACTIVAMOS LAS SALIDAS PARA LOS MOTORES
 	// MOTOR A (IZQUIERDA)
-	PORTC |= (1 << PINC0); // SALIDA 0 --> 1
-	PORTC &= ~(1 << PINC1);
+	PORTB |= (1 << PINB1); // SALIDA 0 --> 1
+	PORTB &= ~(1 << PINB2);
 	// MOTOR B (DERECHA)
-	PORTC &= ~(1 << PINC2);
-	PORTC &= ~(1 << PINC3);
+	PORTB &= ~(1 << PINC3);
+	PORTB &= ~(1 << PINC4);
 }
 
 void Velocidad_girar_izquierda(void){
@@ -147,17 +153,15 @@ void Velocidad_girar_izquierda(void){
 	OCR1B = 31;
 
 	// ACTIVAMOS LA LED DE COLOR VERDE
-	PORTC |= (1 << PINC4);
-	
-	PORTC &= ~(1 << PINC5);
+	PORTD |= (1 << PIND7);
 	
 	// ACTIVAMOS LAS SALIDAS PARA LOS MOTORES
 	// MOTOR A (IZQUIERDA)
-	PORTC &= ~(1 << PINC0); 
-	PORTC &= ~(1 << PINC1);
+	PORTB &= ~(1 << PINB1); 
+	PORTB &= ~(1 << PINB2);
 	// MOTOR B (DERECHA)
-	PORTC |= (1 << PINC2);// SALIDA 0 --> 1
-	PORTC &= ~(1 << PINC3);
+	PORTB |= (1 << PINB3);// SALIDA 0 --> 1
+	PORTB &= ~(1 << PINB4);
 }
 
 void Velocidad_2(void){
@@ -166,17 +170,15 @@ void Velocidad_2(void){
 	OCR1B = 62;
 
 	// ACTIVAMOS LA LED DE COLOR VERDE
-	PORTC |= (1 << PINC4);
-	
-	PORTC &= ~(1 << PINC5);
+	PORTD |= (1 << PIND7);
 	
 	// ACTIVAMOS LAS SALIDAS PARA LOS MOTORES
 	// MOTOR A (IZQUIERDA)
-	PORTC |= (1 << PINC0); // SALIDA 0 --> 1
-	PORTC &= ~(1 << PINC1);
+	PORTB |= (1 << PINB1); // SALIDA 0 --> 1
+	PORTB &= ~(1 << PINB2);
 	// MOTOR B (DERECHA)
-	PORTC |= (1 << PINC2); // SALIDA 2 --> 1
-	PORTC &= ~(1 << PINC3);
+	PORTB |= (1 << PINB3); // SALIDA 2 --> 1
+	PORTB &= ~(1 << PINB4);
 }
 
 void Velocidad_3(void){
@@ -186,17 +188,15 @@ void Velocidad_3(void){
 	OCR1B = 93;
 	
 	// ACTIVAMOS LA LED DE COLOR VERDE
-	PORTC |= (1 << PINC4);
-	
-	PORTC &= ~(1 << PINC5);
+	PORTD |= (1 << PIND7);
 	
 	// ACTIVAMOS LAS SALIDAS PARA LOS MOTORES
 	// MOTOR A (IZQUIERDA)
-	PORTC |= (1 << PINC0); // SALIDA 0 --> 1
-	PORTC &= ~(1 << PINC1);
+	PORTB |= (1 << PINB1); // SALIDA 0 --> 1
+	PORTB &= ~(1 << PINB2);
 	// MOTOR B (DERECHA)
-	PORTC |= (1 << PINC2); // SALIDA 2 --> 1
-	PORTC &= ~(1 << PINC3);
+	PORTB |= (1 << PINB3); // SALIDA 2 --> 1
+	PORTB &= ~(1 << PINB4);
 }
 
 void Velocidad_4(void){
@@ -205,17 +205,15 @@ void Velocidad_4(void){
 	OCR1B = 124;
 	
 	// ACTIVAMOS LA LED DE COLOR VERDE
-	PORTC |= (1 << PINC6);
-	
-	PORTC &= ~(1 << PINC5);
+	PORTD |= (1 << PIND7);
 	
 	// ACTIVAMOS LAS SALIDAS PARA LOS MOTORES
 	// MOTOR A (IZQUIERDA)
-	PORTC |= (1 << PINC0); // SALIDA 0 --> 1
-	PORTC &= ~(1 << PINC1);
+	PORTB |= (1 << PINB1); // SALIDA 0 --> 1
+	PORTB &= ~(1 << PINB2);
 	// MOTOR B (DERECHA)
-	PORTC |= (1 << PINC2); // SALIDA 2 --> 1
-	PORTC &= ~(1 << PINC3);
+	PORTB |= (1 << PINB23); // SALIDA 2 --> 1
+	PORTB &= ~(1 << PINB4);
 }
 
 void Reversa(void){
@@ -235,8 +233,8 @@ void Reversa(void){
 ISR(INT0_vect){
 	
 	// ACTIVAMOS LA LED DE COLOR VERDE
-	PORTC &= ~(1 << PINC4);
-	PORTC |= (1 << PINC5);
+	PORTD &= ~(1 << PIND7);
+	PORTD |= (1 << PIND4);
 	
 	//AL DETERCTAR EL CHOQUE:
 	// 1. HAGA REVERSA
